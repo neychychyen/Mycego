@@ -1,14 +1,33 @@
 import requests
+import os
 import json
 
 #Запакует всю информацию о экземпляре
 class YandexInstance:
     def __init__(self, instance):
-        self.body = instance
+        self.name = instance['name']
+        self.url = instance['file']
+        self.mime = instance['mime_type']
+        self.md5 = instance['md5']
+
+    def download(self, path = './dw'):
+
+        # Загружаем файл
+        response = requests.get(self.url, stream=True)
+
+        # Проверка успешности запроса
+        if response.status_code == 200:
+            with open(path + '/' + self.name, 'wb') as file:
+                for chunk in response.iter_content(chunk_size=8192):
+                    file.write(chunk)
+            print(f"Файл {self.name} успешно скачан!")
+        else:
+            print(f"Не удалось скачать файл. Статус код: {response.status_code}")
 
 #Только папка может хранить в себе другие файлы (открыто)
 class Folder(YandexInstance):
     def __init__(self, instance):
+
         self.path = instance['path']
         self.type = instance['type']
         self.children = []
@@ -67,7 +86,7 @@ class YandexDisk:
         result = self.__get_json(self.public_url, public_key=self.public_key, path=path)
         return self.__parse_data(result, self.__parse_elem, self.__get_tree)
 
-    def get_tree(self, path="/"):
+    def get_model(self, path="/"):
 
         parent = Folder(
             {
@@ -77,39 +96,105 @@ class YandexDisk:
         )
         parent.children = self.__get_tree(path)
 
-        return parent
+        return [parent]
+
+    def get_info(self):
+        info = self.__get_json(self.public_url, public_key=self.public_key)
+        return [info['public_key'], info['public_url']]
+
+    def get_info_for_hashes(self, model, hashes = [], paths = []):
+
+        for elem in model:
+            if hasattr(elem, 'children'):
+                paths.append(elem.path)
+
+                if elem.children:
+                    hashes, paths = self.get_info_for_hashes(elem.children, hashes, paths)
+            else:
+                hashes.append(elem.md5)
+
+        return hashes, paths
+
+    def download_url(self, model, path='', download_array=[]):
+
+        for elem in model:
+            #print(path)
+            if hasattr(elem, 'children'):
+                if elem.children:
+                    download_array = self.download_url(elem.children, elem.path)
+            else:
+                download_array.append([path, elem])
+
+        return download_array
+
+    def download(self, urls, base_path='./', resp_id = 'response'):  # base_path - путь, в котором будут созданы папки
+        # Для каждого элемента в списке
+        for folder_path, file in urls:
+            full_folder_path = os.path.join(base_path + resp_id + folder_path)  # убираем начальный '/'
+
+            #print(full_folder_path)
+
+            # Создаём все необходимые папки (если они не существуют)
+            os.makedirs(full_folder_path,
+                        exist_ok=True)  # exist_ok=True предотвращает ошибку, если папка уже существует
+
+            # Допустим, мы хотим создать файл (например, пустой) в каждой папке
+            file.download(full_folder_path)
+
+    def start(self):
+        model = self.get_model()
+        info = self.get_info()
+        result = self.download_url(model)
+        urls = self.download_url(model)
+        self.download(urls)
+
 
 public_key = 'tA8v00ew6x9O0Ezt5vcBbAGeeKuLKAqumvExwymvVEuEcJyxnXQHKguovMHY51hJq/J6bpmRyOJonT3VoXnDag=='
 
 x = YandexDisk(public_key)
-data = x.get_tree()
-
-class StructureElem:
-    def __init__(self, path, indent):
-        self.path = path
-        self.indent = indent
-def build_structure(data, indent=0, structure=None):
-    if structure is None:
-        structure = []  # Инициализируем структуру, если не передана
-
-    if hasattr(data, 'type') and data.type == 'dir':
-        structure.append(StructureElem(data.path, indent))  # Добавляем текущий элемент
-        if data.children:
-            for elem in data.children:
-                build_structure(elem, indent + 1, structure)  # Рекурсивно вызываем для дочерних элементов
-    else:
-        structure.append(StructureElem(data.body['name'], indent))  # Добавляем обычный элемент
-
-    return structure
-
-def draw_structure(structure):
-    for elem in structure:
-        #print(type(elem))
-        if type(elem) != YandexInstance:
-            print('|' + elem.indent*'-' + elem.path)
-        #
+x.start()
 
 
-root = build_structure(data)
 
-draw_structure(root)
+# data = model
+# print(data[0].children[0].children[0].path)
+#
+# class StructureElem:
+#     def __init__(self, path, indent):
+#         self.path = path
+#         self.indent = indent
+#
+# def build_structure(data, indent=0, structure=None):
+#     if structure is None:
+#         structure = []  # Инициализируем структуру, если не передана
+#
+#     if hasattr(data, 'type') and data.type == 'dir':
+#         structure.append(StructureElem(data.path, indent))  # Добавляем текущий элемент
+#         if data.children:
+#             for elem in data.children:
+#                 build_structure(elem, indent + 1, structure)  # Рекурсивно вызываем для дочерних элементов
+#     else:
+#         structure.append(StructureElem(data.name, indent))  # Добавляем обычный элемент
+#
+#     return structure
+#
+# def draw_structure(structure):
+#     for elem in structure:
+#         #print(type(elem))
+#         if type(elem) != YandexInstance:
+#             print('|' + elem.indent*' '*3 + elem.path)
+#         #
+#
+#
+# root = build_structure(data[0])
+#
+# draw_structure(root)
+
+
+# drs = data.children[3].children
+#
+# #print(drs[0].body)
+#
+# for elem in drs:
+#     print(f'{elem.name}: {elem.download} (hash: {elem.md5}) mime: {elem.mime}')
+#     elem.download()
