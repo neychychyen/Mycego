@@ -1,0 +1,21 @@
+# Используем минимизированный образ Python
+FROM python:slim
+
+# Устанавливаем необходимые пакеты для PostgreSQL
+RUN apt-get update && \
+    apt-get install -y build-essential libpq-dev gcc \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*  # Очищаем кэш пакетов после установки
+
+# Устанавливаем рабочую директорию в контейнере
+WORKDIR /app
+
+# Копируем файл requirements.txt из папки ./yandexParser в контейнер
+COPY . .
+
+# Устанавливаем зависимости для Python, включая psycopg2 для работы с PostgreSQL
+RUN pip install --no-cache-dir -r requirements.txt
+
+
+# Запускаем контейнер в режиме "живого" процесса
+CMD ["tail", "-f", "/dev/null"]

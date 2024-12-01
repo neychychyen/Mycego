@@ -136,6 +136,11 @@ class YandexDisk:
 
         return [parent]
 
+    @staticmethod
+    def __crop_url(url: str) -> str:
+        parts = url.split('/')  # Разделяем строку по символу "/"
+        return parts[-1]
+
     def get_info(self) -> List[str]:
         """
                 Получает информацию о публичном ключе и публичном URL.
@@ -144,7 +149,9 @@ class YandexDisk:
         """
 
         info = self.__get_json(self.public_url, public_key=self.public_key)
-        return [info['public_key'], info['public_url']]
+        return self.__crop_url(info['public_url']), info['public_url'], info['public_key']
+
+
 
     def get_info_for_hashes(self, model: List['Folder'], hashes: List[str] = [], paths: List[str] = []) -> Tuple[List[str], List[str]]:
 
@@ -188,7 +195,7 @@ class YandexDisk:
 
         return download_array
 
-    def download(self, urls: List[List[Union[str, 'YandexInstance']]], resp_id: str = '/id1', base_path: str = './response/') -> None:  # base_path - путь, в котором хранятся загрузки
+    def download(self, urls: List[List[Union[str, 'YandexInstance']]], resp_id: str = '/id1', base_path: str = '../response/') -> None:  # base_path - путь, в котором хранятся загрузки
         """
                 Загружает файлы, создавая необходимые папки.
 
@@ -207,16 +214,14 @@ class YandexDisk:
 
 
             file.download(full_folder_path)
-    @staticmethod
-    def crop_url(url: str) -> str:
-        parts = url.split('/')  # Разделяем строку по символу "/"
-        return parts[-1]
+
+
+
     def start(self) -> None:
         model = self.get_model()
         info = self.get_info()
-        result = self.download_url(model)
         urls = self.download_url(model)
-        self.download(urls, self.crop_url(info[1]))
+        self.download(urls, self.__crop_url(info[1]))
 
 
 
