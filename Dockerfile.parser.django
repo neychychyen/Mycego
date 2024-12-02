@@ -11,7 +11,10 @@ RUN apt-get update && \
 WORKDIR /app
 
 # Копируем файл requirements.txt из папки ./yandexParser в контейнер
-COPY . .
+COPY ./app .
+COPY ./requirements.txt .
+COPY ./yandexParser ../yandexParser
+
 
 # Устанавливаем зависимости для Python, включая psycopg2 для работы с PostgreSQL
 RUN pip install --no-cache-dir -r requirements.txt
