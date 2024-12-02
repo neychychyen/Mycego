@@ -9,6 +9,7 @@ services:
     volumes:
       - ./data/response/:/response
       - ./yandexParser:/yandexParser #Только во время разработки
+      - ./app:/app
 
     command: sh -c "
       python manage.py makemigrations &&
