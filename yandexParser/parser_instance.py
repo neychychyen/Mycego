@@ -15,12 +15,12 @@ DATABASE_URL = f"postgres://{POSTGRES_USER}:{POSTGRES_PASSWORD}@db:5432/{POSTGRE
 
 class ParserInstance:
     def __init__(self, public_key: str) -> None:
-        self.instance = YandexDisk(public_key)
+        self.instance = Session(public_key)
 
-    def get_info_from_model(self) -> Tuple[str]:
+    def get_info_from_model(self) -> Tuple[str, str, str, str]:
         """
             Возвращает публичный ключ, ссылку, и id ссылки из модели (не из бд)
-            :return: (self.__crop_url(info['public_url']), info['public_url'], info['public_key'])
+            :return: (self.__crop_url(info['public_url'])[0], info['public_url'], info['public_key'], self.__crop_url(info['public_url'])[1])
         """
         return self.instance.get_info()
     def isExist(self) -> bool:
@@ -30,7 +30,6 @@ class ParserInstance:
         """
 
         name = self.get_info_from_model()[0]
-
         try:
             # Подключаемся к базе данных
             connection = psycopg2.connect(DATABASE_URL)
@@ -49,7 +48,7 @@ class ParserInstance:
 
             return exists
         except Exception as e:
-            print(f"Ошибка при подключении к базе данных: {e}")
+            print(f"Ошибка при Проверке существования {name} в downloads: {e}")
             return False
 
     def create_entry(self) -> None:
@@ -58,25 +57,20 @@ class ParserInstance:
             Если возникает ошибка, откатывает транзакцию.
         """
 
-        def create_download(name: str, url: str, public_key: str, connection, cursor) -> bool:
+        def create_download(name: str, url: str, public_key: str, type: str, connection, cursor) -> bool:
             """
                 Подключается к бд download и добавляет name: str, url: str, public_key: str запись
                 :return: True - успешно, False - с ошибкой
             """
-            try:
-                # Пишем SQL-запрос для вставки записи
-                query = sql.SQL("""
-                    INSERT INTO download (name, url, public_key)
-                    VALUES (%s, %s, %s);
-                """)
 
-                # Выполняем запрос с переданными параметрами
-                cursor.execute(query, (name, url, public_key))
-                return True
-            except Exception as e:
-                print(f"Ошибка при добавлении записи в таблицу download: {e}")
-                return False
+            query = sql.SQL("""
+                INSERT INTO download (name, url, public_key, type)
+                VALUES (%s, %s, %s, %s);
+            """)
 
+            # Выполняем запрос с переданными параметрами
+            cursor.execute(query, (name, url, public_key, type))
+            return True
         def create_response(download_name: str, connection, cursor) -> bool:
             """
                 Создает запись в таблице response, используя имя из таблицы download
@@ -84,16 +78,16 @@ class ParserInstance:
                 :return: True - если запись успешно создана, False - если произошла ошибка
             """
 
-            def get_download_id_by_name(name: str, cursor) -> Optional[int]:
+            def get_download_id_by_name(download_name: str, cursor) -> Optional[int]:
                 """
                     Получает id из таблицы download по имени
-                    :param name: имя записи в таблице download
+                    :param download_name: имя записи в таблице download
                     :return: id записи
                 """
                 try:
                     # Пишем SQL-запрос для получения id по имени
                     query = sql.SQL("SELECT id FROM download WHERE name = %s;")
-                    cursor.execute(query, (name,))
+                    cursor.execute(query, (download_name,))
 
                     # Получаем результат
                     result = cursor.fetchone()
@@ -109,41 +103,38 @@ class ParserInstance:
             # Получаем id из таблицы download по имени
             download_id = get_download_id_by_name(download_name, cursor)
 
-            if download_id is None:
-                return False  # Если не нашли id, то ошибка
 
-            try:
-                # Пишем SQL-запрос для вставки записи в таблицу response
-                query = sql.SQL("""
-                    INSERT INTO response (download_id, ready_to_use)
-                    VALUES (%s, %s);
-                """)
+            # Пишем SQL-запрос для вставки записи в таблицу response
+            query = sql.SQL("""
+                INSERT INTO response (download_id, ready_to_use)
+                VALUES (%s, %s);
+            """)
 
-                # Выполняем запрос с параметрами (download_id, ready_to_use=False)
-                cursor.execute(query, (download_id, False))
-                return True
-            except Exception as e:
-                print(f"Ошибка при добавлении записи в таблицу response: {e}")
-                return False
+            # Выполняем запрос с параметрами (download_id, ready_to_use=False)
+            cursor.execute(query, (download_id, False))
+            return True
+
 
         # Получаем информацию из модели
         entry_instance = self.get_info_from_model()
 
         #Производим запись
-        try:
+
             # Подключаемся к базе данных
-            connection = psycopg2.connect(DATABASE_URL)
-            cursor = connection.cursor()
+        connection = psycopg2.connect(DATABASE_URL)
+        cursor = connection.cursor()
 
-            # Начинаем транзакцию
-            connection.autocommit = False
+        # Начинаем транзакцию
+        connection.autocommit = False
 
-            # Создаем запись в таблице download
-            if not create_download(*entry_instance, connection, cursor):
-                connection.rollback()  # Откатываем транзакцию при ошибке
-                print("Ошибка при добавлении записи в таблицу download.")
-                return
+        # Создаем запись в таблице download
+        if not create_download(*entry_instance, connection, cursor):
+            connection.rollback()  # Откатываем транзакцию при ошибке
+            print("Ошибка при добавлении записи в таблицу download.")
+            return
 
+
+        try:
             # Создаем запись в таблице response
             if not create_response(entry_instance[0], connection, cursor):
                 connection.rollback()  # Откатываем транзакцию при ошибке
@@ -250,12 +241,11 @@ class ParserInstance:
         """
         info = self.get_info_from_model()
         model = self.instance.get_model()
-        download_urls = self.instance.download_url(model)
-
+        download_urls = self.instance.download_urls(model)
         self.instance.download(download_urls, info[0], '../response/')
 
 
-def start(public_key):
+def first_init(public_key: str) -> None:
     x = ParserInstance(public_key)
     if not x.isExist():
         x.create_entry()
@@ -266,9 +256,12 @@ def start(public_key):
         x.change_status(True)
 
 if __name__ == "__main__":
-    public_key = 'https://disk.yandex.ru/d/huOF6MZIm1oSlg'
 
-    start(public_key)
+    public_key = 'https://disk.yandex.ru/d/huOF6MZIm1oSlg'
+    pk3 = 'https://disk.yandex.ru/i/c_23QH5Z9sv1Cw'
+    pk = 'https://disk.yandex.ru/d/huOF6MZIm1oSlg'
+    pk2 = 'https://disk.yandex.ru/d/E3z5Ygcd8JkFSw'
+    first_init(pk)
 
 
 

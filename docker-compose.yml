@@ -2,12 +2,13 @@ version: '3.9'
 
 services:
 
-  parser:
-    build: ./yandexParser
-    container_name: parser
+  django_parser:
+    build:
+      dockerfile: Dockerfile.parser.django
+    container_name: django
     volumes:
       - ./data/response/:/response
-      - ./yandexParser:/app #Только во время разработки
+      - ./yandexParser:/yandexParser #Только во время разработки
 
     depends_on:
       - db

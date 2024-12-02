@@ -4,6 +4,7 @@
 CREATE TABLE download (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) UNIQUE NOT NULL,
+    type VARCHAR(1) NOT NULL CHECK (type IN ('i', 'd')),
     url VARCHAR(255) NOT NULL,
     public_key VARCHAR(255) NOT NULL
 );
