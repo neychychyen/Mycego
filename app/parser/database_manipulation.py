@@ -39,14 +39,14 @@ class databaseInstance:
 
             name = crop_url(self.public_key)
 
-            query = "SELECT EXISTS(SELECT 1 FROM download WHERE public_key = %s or name = %s);"
-            cursor.execute(query, (self.public_key, name))
+            query = "SELECT EXISTS(SELECT 1 FROM download WHERE public_key = %s or name = %s or name = %s or public_key = %s);"
+            cursor.execute(query, (self.public_key, name, self.public_key, name))
             boolean = cursor.fetchone()
 
 
 
-            query = "SELECT id, name FROM download WHERE public_key = %s or name = %s;" #SELECT name FROM download WHERE public_key = 'https://disk.yandex.ru/d/huOF6MZIm1oSlg' or url = 'https://disk.yandex.ru/d/huOF6MZIm1oSlg';
-            cursor.execute(query, (self.public_key, name))
+            query = "SELECT id, name FROM download WHERE public_key = %s or name = %s or name = %s or public_key = %s;" #SELECT name FROM download WHERE public_key = 'https://disk.yandex.ru/d/huOF6MZIm1oSlg' or url = 'https://disk.yandex.ru/d/huOF6MZIm1oSlg';
+            cursor.execute(query, (self.public_key, name, self.public_key, name))
             result = cursor.fetchone()
             return boolean[0], [result[0], name]
 

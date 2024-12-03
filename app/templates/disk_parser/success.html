@@ -1,0 +1,43 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+
+    <link rel="stylesheet" type="text/css" href="{% static 'disk_parser/src/css/style.css' %}">
+</head>
+<body>
+
+
+
+<div class="content-container">
+    <div class="logo">Результат ключа {{public_key}} (ссылка: {{public_url}})</div>
+
+
+    <div class="file-container">
+
+    </div>
+
+    <div id="press">
+
+    </div>
+
+
+</div>
+
+<script>
+    const get_data_url = '{% url 'ajax_status' %}?public_url=' + '{{public_url}}';
+    const get_items_url = '{% url 'ajax_elements' %}?public_url=' + '{{public_url}}';
+    const public_url = '{{public_url}}';
+    const baseUrl = 'download';
+</script>
+
+<script src="{% static 'disk_parser/src/js/js.js' %}"></script>
+<script src="{% static 'disk_parser/src/js/ajax.js' %}"></script>
+
+
+</body>
+</html>
+

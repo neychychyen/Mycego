@@ -1,0 +1,44 @@
+body{
+    background-color: aquamarine;
+}
+
+.content-container{
+    margin-top: 5vh;
+}
+
+.file-container{
+
+    background-color:aliceblue;
+    border: 1px solid black;
+}
+
+.file-item{
+    cursor: pointer;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    padding-left: 5px;
+    border: 1px solid black;
+    transition: background-color 0.4s;
+}
+
+.active:hover{
+    background-color:bisque !important;
+}
+
+.file-item:hover{
+    background-color:cornsilk;
+}
+
+.file-item:active{
+    cursor: grab;
+}
+
+.active {
+    background-color:burlywood;
+}
+
+#press{
+padding-top: 10px;
+  display: flex;
+  justify-content: space-around;
+}
