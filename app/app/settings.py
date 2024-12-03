@@ -28,7 +28,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     #my modules
-    'modules.disk_parser.apps.DiskParserConfig'
+    'modules.disk_parser.apps.DiskParserConfig',
+    'modules.authapp.apps.AuthappConfig'
 ]
 
 MIDDLEWARE = [

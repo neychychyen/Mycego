@@ -1,5 +1,4 @@
 .venv
 .idea
-.env
 data/response
 data/database

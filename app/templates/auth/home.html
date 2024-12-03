@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Home</title>
+</head>
+<body>
+    <h1>Добро пожаловать, {{ user.username }}!</h1>
+    <p><a href="{% url 'logout' %}">Выйти</a></p>
+    <p><a href="{% url 'submit_key' %}">Главная</a></p>
+</body>
+</html>
