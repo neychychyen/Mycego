@@ -1,6 +1,6 @@
 from typing import List, Tuple, Optional
 
-from main import *
+from parser.main import *
 
 import os
 

@@ -134,8 +134,8 @@ class Session:
             model = self.get_model()
             info = self.get_info()
 
-            #download_dir = '../data/response'
             download_dir = '../response'
+
             id = info[0]
 
             def get_all_paths(data: Dict[str, Any], parent_path: str = '') -> List[str]:

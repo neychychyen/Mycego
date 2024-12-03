@@ -11,16 +11,18 @@ services:
       - ./yandexParser:/yandexParser #Только во время разработки
       - ./app:/app
 
-    command: sh -c "
-      python manage.py makemigrations &&
-      python manage.py migrate &&
-      python manage.py runserver 0.0.0.0:8000
-      "
+    #command: sh -c "
+      #python manage.py makemigrations &&
+      #python manage.py migrate &&
+      #python manage.py runserver 0.0.0.0:8000
+      #"
     ports:
       - "8000:8000"
 
     depends_on:
       - db
+      - redis
+      - celery
     environment:
         POSTGRES_USER: ${POSTGRES_USER}
         POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -41,6 +43,30 @@ services:
     volumes:
       - ./data/database:/var/lib/postgresql/data
       - ./data/postgres_preparations/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+
+  celery:
+    build:
+      dockerfile: Dockerfile.parser.django
+    command: celery -A app worker --loglevel=info
+    container_name: celery
+    volumes:
+      - ./data/response/:/response
+      - ./app:/app
+    environment:
+      - CELERY_BROKER=redis://redis:6379/0
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:latest
+    command: [ "redis-server", "--loglevel", "debug" ]
+    container_name: redis
+    ports:
+      - "6379:6379"
 #    networks:
 #      - app_network
 
